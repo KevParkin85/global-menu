@@ -90,14 +90,45 @@ def get_dishes():
     conn.close()
     return [dict(row) for row in rows]
 
+@app.get("/ingredients")
 @app.get("/api/ingredients")
 def get_ingredients():
     return {
-        "meat_poultry": ["Chicken", "Beef", "Pork", "Lamb"],
-        "fish_seafood": ["Salmon", "Cod", "Shrimp", "Tuna"],
-        "vegetables_legumes": ["Tomato", "Onion", "Garlic", "Spinach"],
-        "pantry_grains_dairy": ["Rice", "Flour", "Milk", "Cheese"],
-        "sauces_herbs_spices": ["Soy Sauce", "Olive Oil", "Basil", "Cumin"]
+        "meat_poultry": [
+            "Chicken", "Beef", "Pork", "Lamb", "Turkey", "Duck", "Bacon", "Sausage", 
+            "Ham", "Venison", "Veal", "Goat", "Prosciutto", "Chorizo", "Pepperoni", 
+            "Salami", "Pancetta", "Quail", "Rabbit", "Bison", "Liver", "Kidney"
+        ],
+        "fish_seafood": [
+            "Salmon", "Cod", "Shrimp", "Tuna", "Crab", "Lobster", "Sardines", "Mackerel", 
+            "Trout", "Scallops", "Mussels", "Squid", "Octopus", "Anchovies", "Clams", 
+            "Oysters", "Haddock", "Halibut", "Sea Bass", "Snapper", "Crayfish", "Herring"
+        ],
+        "vegetables_legumes": [
+            "Tomato", "Onion", "Garlic", "Spinach", "Potato", "Carrot", "Broccoli", 
+            "Bell Pepper", "Zucchini", "Mushrooms", "Chickpeas", "Lentils", "Black Beans", 
+            "Kidney Beans", "Green Peas", "Cabbage", "Cauliflower", "Cucumber", "Lettuce", 
+            "Celery", "Sweet Potato", "Eggplant", "Asparagus", "Artichoke", "Kale", 
+            "Pumpkin", "Butternut Squash", "Beetroot", "Radish", "Leek", "Scallion", 
+            "Bok Choy", "Edamame", "Cannellini Beans", "Pinto Beans", "Split Peas"
+        ],
+        "pantry_grains_dairy": [
+            "Rice", "Flour", "Milk", "Cheese", "Butter", "Pasta", "Bread", "Oats", 
+            "Cheddar", "Mozzarella", "Yogurt", "Heavy Cream", "Eggs", "Quinoa", "Couscous", 
+            "Parmesan", "Feta", "Ricotta", "Gouda", "Brie", "Paneer", "Halloumi", 
+            "Sour Cream", "Cream Cheese", "Tortillas", "Noodles", "Polenta", "Bulgur", 
+            "Barley", "Olive Oil", "Vegetable Oil", "Coconut Milk", "Honey", "Maple Syrup", 
+            "Sugar", "Baking Powder", "Yeast", "Soy Sauce", "Vinegar", "Tomato Paste"
+        ],
+        "sauces_herbs_spices": [
+            "Soy Sauce", "Olive Oil", "Basil", "Cumin", "Black Pepper", "Sea Salt", 
+            "Oregano", "Thyme", "Paprika", "Chili Powder", "Ginger", "Rice Vinegar", 
+            "Fish Sauce", "Sesame Oil", "Rosermary", "Sage", "Dill", "Coriander", 
+            "Cayenne Pepper", "Turmeric", "Cinnamon", "Nutmeg", "Cloves", "Cardamom", 
+            "Star Anise", "Curry Powder", "Garam Masala", "Hot Sauce", "Worcestershire Sauce", 
+            "Dijon Mustard", "Whole Grain Mustard", "Mayonnaise", "Ketchup", "Sriracha", 
+            "Hoisin Sauce", "Oyster Sauce", "Tahin", "Miso Paste", "Gochujang"
+        ]
     }
 
 @app.post("/dishes")
