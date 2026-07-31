@@ -39,13 +39,33 @@ def get_api_dishes():
 
 @app.get("/api/user-data")
 def get_user_data():
-    return {"status": "ok"}
+    return {
+        "username": "kev",
+        "user": "kev",
+        "dietary_requirements": ""
+    }
 
 @app.post("/token")
 @app.post("/api/login")
-def login(request: Request, username: str = Form(None)):
-    # Fallback if form data is sent as JSON or username is in the request body
-    return {"access_token": "mock_token", "token_type": "bearer", "username": username or "kev"}
+async def login(request: Request):
+    # Check if form data or JSON payload was sent
+    form_data = await request.form()
+    username = form_data.get("username") or form_data.get("username")
+    
+    if not username:
+        # Fallback to checking json body if form data is empty
+        try:
+            body = await request.json()
+            username = body.get("username")
+        except:
+            username = "User"
+
+    return {
+        "access_token": "mock_token", 
+        "token_type": "bearer", 
+        "username": username,
+        "user": username
+    }
 
 @app.post("/api/register")
 def register():
