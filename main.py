@@ -38,6 +38,10 @@ class Dish(BaseModel):
     rating: int = None
     difficulty: int = None
     notes: str = None
+    
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the Global Menu API!"}
 
 @app.get("/dishes")
 def get_dishes():
