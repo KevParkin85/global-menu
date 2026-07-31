@@ -1,5 +1,6 @@
 import sqlite3
 from fastapi import FastAPI, HTTPException, Request, Form
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -39,9 +40,10 @@ class Dish(BaseModel):
     difficulty: int = None
     notes: str = None
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def read_root():
-    return {"message": "Welcome to the Global Menu API!"}
+    with open("index.html", "r", encoding="utf-8") as f:
+        return f.read()
 
 @app.get("/dishes")
 def get_dishes():
