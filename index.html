@@ -354,6 +354,21 @@
                 <button onclick="logoutUser()" style="width:100%; background:#e74c3c; padding:6px; margin-top:10px; font-size:0.8em;">Log Out</button>
             </div>
         </div>
+       
+        <!-- Country Community Stats Section -->
+<div class="card">
+    <h2>Country Community Stats</h2>
+    <select id="countrySelect" onchange="fetchCountryStats()">
+        <option value="">-- Select a Country --</option>
+    </select>
+    <div id="countryStats" style="margin-top: 10px; font-weight: bold;"></div>
+</div>
+
+<!-- Weekly Top 10 Dishes Section -->
+<div class="card">
+    <h2>Weekly Top 10 Dishes</h2>
+    <ul id="top10List"></ul>
+</div>
 
         <p class="help-text">Select ingredients by category to filter recipes, or click countries to log your tastes and creations!</p>
         
@@ -897,6 +912,54 @@
         .catch(err => console.log('Service Worker registration failed: ', err));
     });
   }
+  async function loadCommunityData() {
+    try {
+        const topRes = await fetch(`${API_URL}/dishes/top10`);
+        const top10 = await topRes.json();
+        const topListEl = document.getElementById('top10List');
+        if (topListEl) {
+            topListEl.innerHTML = '';
+            top10.forEach(dish => {
+                const li = document.createElement('li');
+                li.textContent = `${dish.name} (${dish.country}) - Rating: ${dish.avg_rating.toFixed(1)}/5 (Difficulty: ${dish.avg_difficulty.toFixed(1)}/5)`;
+                topListEl.appendChild(li);
+            });
+        }
+
+        const dishesRes = await fetch(`${API_URL}/dishes`);
+        const dishes = await dishesRes.json();
+        const selectEl = document.getElementById('countrySelect');
+        if (selectEl) {
+            const countries = [...new Set(dishes.map(d => d.country))];
+            selectEl.innerHTML = '<option value="">-- Select a Country --</option>';
+            countries.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                selectEl.appendChild(opt);
+            });
+        }
+    } catch (err) {
+        console.error("Error loading community data:", err);
+    }
+}
+
+async function fetchCountryStats() {
+    const country = document.getElementById('countrySelect').value;
+    const statsEl = document.getElementById('countryStats');
+    if (!country) {
+        statsEl.textContent = '';
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/countries/${country}/stats`);
+        const stats = await res.json();
+        statsEl.textContent = `Average Taste Rating: ${stats.avg_rating}/5 | Average Difficulty: ${stats.avg_difficulty}/5 (Total Dishes Logged: ${stats.total_dishes})`;
+    } catch (err) {
+        statsEl.textContent = 'Could not load stats for this country.';
+    }
+}
 </script>
 </body>
 </html>
