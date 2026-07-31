@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Culinary Map & Passport</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: row;
+            overflow: hidden;
+        }
+
+        #sidebar {
+            width: 380px;
+            min-width: 380px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-right: 1px solid #ddd;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+            z-index: 1000;
+            height: 100vh;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        #map {
+            flex-grow: 1;
+            height: 100vh;
+            background: #e9ecef;
+        }
+
+        /* Auth Panel Styles */
+        .auth-box {
+            background: #fff;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        .auth-box input, .auth-box textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 0.85em;
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 6px;
+        }
+
+        .auth-buttons button {
+            flex: 1;
+            padding: 8px;
+            font-size: 0.85em;
+        }
+
+        /* Wiki Drawer Panel */
+        #wiki-drawer {
+            position: fixed;
+            top: 0;
+            right: -550px;
+            width: 500px;
+            height: 100vh;
+            background: white;
+            box-shadow: -5px 0 25px rgba(0,0,0,0.15);
+            z-index: 3000;
+            transition: right 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        #wiki-drawer.open {
+            right: 0;
+        }
+
+        .drawer-header {
+            padding: 15px 20px;
+            background: #2c3e50;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .drawer-header h3 {
+            margin: 0;
+            font-size: 1.1em;
+        }
+
+        .drawer-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 0;
+            flex: unset;
+        }
+
+        #wiki-frame {
+            flex-grow: 1;
+            border: none;
+            width: 100%;
+            height: calc(100vh - 55px);
+        }
+
+        h2 { margin-top: 0; color: #333; font-size: 1.4em; }
+        
+        .help-text {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 0.85em;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px;
+            background: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        button:hover { background: #1a252f; }
+
+        button.clear-btn {
+            background: #95a5a6;
+        }
+        button.clear-btn:hover { background: #7f8c8d; }
+
+        .category-section {
+            margin-bottom: 15px;
+        }
+
+        .category-title {
+            font-size: 0.85em;
+            font-weight: bold;
+            color: #4a5568;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .chip-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            max-height: 150px;
+            overflow-y: auto;
+            padding-right: 4px;
+            background: #fff;
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+        }
+
+        .ingredient-chip {
+            background: #e2e8f0;
+            color: #2d3748;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            cursor: pointer;
+            border: 1px solid #cbd5e0;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .ingredient-chip:hover {
+            background: #cbd5e0;
+            border-color: #a0aec0;
+        }
+
+        .ingredient-chip.selected {
+            background: #2c3e50;
+            color: white;
+            border-color: #1a252f;
+        }
+
+        /* Modal Styles */
+        #modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
+        }
+
+        #recipe-modal {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            z-index: 2001;
+            width: 90%;
+            max-width: 500px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .close-btn {
+            float: right;
+            cursor: pointer;
+            font-size: 1.5em;
+            color: #888;
+            line-height: 1;
+        }
+        
+        .close-btn:hover { color: #333; }
+        
+        .tag {
+            display: inline-block;
+            background: #e1f0fa;
+            color: #0056b3;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            margin: 2px;
+        }
+        
+        .wiki-link-btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 14px;
+            background: #0056b3;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+        }
+        .wiki-link-btn:hover { background: #004085; }
+
+        /* Passport Status Toggles & Ratings in Modal */
+        .passport-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        .passport-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .pass-btn {
+            flex: 1;
+            padding: 8px;
+            font-size: 0.8em;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #f8f9fa;
+            color: #333;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .pass-btn.active-tasted { background: #f39c12; color: white; border-color: #d68910; }
+        .pass-btn.active-cooked { background: #28a745; color: white; border-color: #218838; }
+        .pass-btn.active-want { background: #3498db; color: white; border-color: #2980b9; }
+
+        .rating-box {
+            margin-top: 10px;
+            display: none;
+            font-size: 0.85em;
+        }
+        .rating-box.active {
+            display: block;
+        }
+        .stars, .hats {
+            display: flex;
+            gap: 5px;
+            font-size: 1.2em;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+        .star, .hat {
+            color: #cbd5e0;
+            transition: color 0.1s;
+        }
+        .star.selected, .hat.selected {
+            color: #f1c40f;
+        }
+        .hat.selected {
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2>Culinary Passport</h2>
+        
+        <!-- Authentication Box -->
+        <div class="auth-box" id="auth-container">
+            <div id="auth-logged-out">
+                <p style="margin: 0 0 8px 0; font-weight: bold;">Log in to track your passport</p>
+                <input type="text" id="auth-user" placeholder="Username">
+                <input type="password" id="auth-pass" placeholder="Password">
+                <div class="auth-buttons">
+                    <button onclick="loginUser()">Log In</button>
+                    <button onclick="registerUser()" style="background:#7f8c8d;">Register</button>
+                </div>
+            </div>
+            <div id="auth-logged-in" style="display: none;">
+                <p style="margin: 0 0 4px 0;">Logged in as: <strong id="current-username"></strong></p>
+                
+                <div style="margin-top: 10px; border-top: 1px dashed #cbd5e0; padding-top: 8px;">
+                    <label style="font-weight: bold; font-size: 0.85em; display: block; margin-bottom: 4px;">Dietary Requirements:</label>
+                    <textarea id="dietary-input" placeholder="e.g. Vegetarian, Nut allergy, Gluten-free..." rows="2" style="font-size: 0.85em;"></textarea>
+                    <button onclick="saveDietary()" style="width:100%; background:#2980b9; padding:6px; font-size:0.8em; margin-top:4px;">Save Dietary Info</button>
+                </div>
+
+                <button onclick="logoutUser()" style="width:100%; background:#e74c3c; padding:6px; margin-top:10px; font-size:0.8em;">Log Out</button>
+            </div>
+        </div>
+
+        <p class="help-text">Select ingredients by category to filter recipes, or click countries to log your tastes and creations!</p>
+        
+        <!-- Categorized Ingredient Selectors -->
+        <div class="category-section">
+            <div class="category-title">Meat & Poultry</div>
+            <div class="chip-container" id="chips-meat"></div>
+        </div>
+
+        <div class="category-section">
+            <div class="category-title">Fish & Seafood</div>
+            <div class="chip-container" id="chips-fish"></div>
+        </div>
+
+        <div class="category-section">
+            <div class="category-title">Vegetables & Legumes</div>
+            <div class="chip-container" id="chips-veg"></div>
+        </div>
+
+        <div class="category-section">
+            <div class="category-title">Pantry, Grains & Dairy</div>
+            <div class="chip-container" id="chips-pantry"></div>
+        </div>
+
+        <div class="category-section">
+            <div class="category-title">Sauces, Herbs & Spices</div>
+            <div class="chip-container" id="chips-spices"></div>
+        </div>
+
+        <input type="text" id="ingredients-input" placeholder="Selected ingredients appear here..." oninput="findMatches()" onkeypress="handleKeyPress(event)">
+        
+        <div class="button-group">
+            <button onclick="findMatches()" style="flex:1;">Find Recipes</button>
+            <button class="clear-btn" onclick="clearSearch()" style="flex:1;">Clear</button>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- Sliding Wikipedia Drawer Panel -->
+    <div id="wiki-drawer">
+        <div class="drawer-header">
+            <h3 id="drawer-title">Wikipedia</h3>
+            <button class="drawer-close" onclick="closeWikiDrawer()">&times;</button>
+        </div>
+        <iframe id="wiki-frame" src=""></iframe>
+    </div>
+
+    <div id="modal-overlay" onclick="closeModal()"></div>
+    <div id="recipe-modal">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <h2 id="modal-title" style="margin-bottom: 5px;">Dish Name</h2>
+        <p style="color: #666; margin-top: 0; font-style: italic;" id="modal-country">Country</p>
+        
+        <h3>Ingredients needed:</h3>
+        <div id="modal-ingredients" style="margin-bottom: 15px;"></div>
+        
+        <h3>Method:</h3>
+        <p id="modal-method" style="line-height: 1.5;"></p>
+        
+        <button class="wiki-link-btn" id="modal-wiki-btn">Read more on Wikipedia</button>
+
+        <div class="passport-section" id="passport-controls" style="display:none;">
+            <p style="margin: 0 0 6px 0; font-weight: bold; font-size: 0.9em;">My Culinary Status:</p>
+            <div class="passport-buttons">
+                <button class="pass-btn" id="btn-tasted" onclick="setStatus('tasted')">😋 Tasted It</button>
+                <button class="pass-btn" id="btn-cooked" onclick="setStatus('cooked')">🍳 Cooked It</button>
+                <button class="pass-btn" id="btn-want" onclick="setStatus('want')">⭐ Want to Make</button>
+            </div>
+
+            <!-- Taste Rating (1-5 Stars) -->
+            <div class="rating-box" id="taste-rating-box">
+                <label style="font-weight: bold;">Taste Rating:</label>
+                <div class="stars" id="star-container">
+                    <span class="star" onclick="setTasteRating(1)">★</span>
+                    <span class="star" onclick="setTasteRating(2)">★</span>
+                    <span class="star" onclick="setTasteRating(3)">★</span>
+                    <span class="star" onclick="setTasteRating(4)">★</span>
+                    <span class="star" onclick="setTasteRating(5)">★</span>
+                </div>
+            </div>
+
+            <!-- Chef Rating (1-5 Hats) -->
+            <div class="rating-box" id="chef-rating-box">
+                <label style="font-weight: bold;">Difficulty Rating (Chef's Hats):</label>
+                <div class="hats" id="hat-container">
+                    <span class="hat" onclick="setChefRating(1)">👨‍🍳</span>
+                    <span class="hat" onclick="setChefRating(2)">👨‍🍳</span>
+                    <span class="hat" onclick="setChefRating(3)">👨‍🍳</span>
+                    <span class="hat" onclick="setChefRating(4)">👨‍🍳</span>
+                    <span class="hat" onclick="setChefRating(5)">👨‍🍳</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        var dishDatabase = {};
+        var userStatuses = {}; // { ISO: { status, taste_rating, chef_rating } }
+        var authToken = localStorage.getItem('auth_token');
+        var currentActiveIso = null;
+        var geojsonLayer = null;
+
+        const categories = {
+            meat: ['beef', 'pork', 'chicken', 'lamb', 'duck', 'chorizo', 'mutton', 'sausage', 'pork belly'],
+            fish: ['fish', 'shrimp', 'seafood', 'salt cod', 'crab'],
+            veg: ['potatoes', 'tomatoes', 'onion', 'garlic', 'cabbage', 'carrots', 'beans', 'lentils', 'leeks', 'turnips', 'aubergine', 'kale', 'radish', 'scallions', 'chickpeas', 'bouquet garni', 'mushrooms', 'prunes', 'chillies'],
+            pantry: ['flour', 'water', 'yeast', 'rice', 'eggs', 'cheese', 'butter', 'milk', 'olive oil', 'noodles', 'bread', 'breadcrumbs', 'semolina', 'tortillas', 'pancakes', 'macaroni', 'ghee', 'yogurt', 'sugar', 'batter', 'oil', 'nori', 'pasta'],
+            spices: ['basil', 'salt', 'vinegar', 'soy sauce', 'honey', 'five-spice', 'cumin', 'turmeric', 'paprika', 'chilli', 'lemon', 'lime', 'cilantro', 'bay leaves', 'beer', 'white wine', 'mustard', 'curry powder', 'tamarind', 'fish sauce', 'ginger', 'chili powder', 'sambal', 'pepper', 'kirsch', 'spices']
+        };
+
+        function getIso(feature) {
+            return feature.id || (feature.properties && (feature.properties.ISO || feature.properties.iso || feature.properties.ISO_A3));
+        }
+        function getName(feature) {
+            return feature.properties.name || feature.properties.NAME || feature.properties.ADMIN || "Unknown Country";
+        }
+        function getIngredients(dish) {
+            if (!dish) return [];
+            return dish.ingredients || dish.Ingredients || dish.recipe_ingredients || [];
+        }
+
+        const map = L.map('map', { zoomControl: false }).setView([30, 0], 2);
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 10
+        }).addTo(map);
+
+        if (authToken) {
+            loadUserData();
+        }
+
+        Promise.all([
+            fetch('/api/dishes').then(res => res.json()),
+            fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json').then(res => res.json())
+        ])
+        .then(([apiData, mapData]) => {
+            dishDatabase = apiData; 
+            populateCategorizedChips(dishDatabase);
+            
+            geojsonLayer = L.geoJSON(mapData, {
+                style: function(feature) {
+                    return getCountryStyle(feature);
+                },
+                onEachFeature: function(feature, layer) {
+                    const isoCode = getIso(feature);
+                    const countryName = getName(feature);
+                    let dish = isoCode ? dishDatabase[isoCode] : null;
+
+                    if (dish) {
+                        layer.bindTooltip(`<strong>${countryName}</strong><br/>${dish.name || dish.Name || 'Recipe Available'}`, {
+                            direction: 'top',
+                            className: 'custom-tooltip'
+                        });
+                        
+                        layer.on('mouseover', function() {
+                            this.setStyle({ fillOpacity: 0.9, weight: 2, color: '#333' });
+                        });
+                        
+                        layer.on('mouseout', function() {
+                            geojsonLayer.resetStyle(this);
+                        });
+
+                        layer.on('click', function() {
+                            openModal(countryName, dish, isoCode);
+                        });
+                    } else {
+                        layer.bindTooltip(`<strong>${countryName}</strong><br/><em>No recipe available</em>`, { direction: 'top' });
+                        layer.on('mouseover', function() {
+                            this.setStyle({ fillOpacity: 0.6, weight: 1.5, color: '#999' });
+                        });
+                        layer.on('mouseout', function() {
+                            geojsonLayer.resetStyle(this);
+                        });
+                    }
+                }
+            }).addTo(map);
+
+            setTimeout(() => { map.invalidateSize(); }, 200);
+        });
+
+        function getCountryStyle(feature) {
+            const isoCode = getIso(feature);
+            const entry = userStatuses[isoCode];
+            const status = entry ? entry.status : null;
+
+            let fillColor = '#b0bec5'; 
+            let fillOpacity = 0.4;
+
+            if (status === 'tasted') {
+                fillColor = '#f39c12'; 
+                fillOpacity = 0.7;
+            } else if (status === 'cooked') {
+                fillColor = '#28a745'; 
+                fillOpacity = 0.7;
+            } else if (status === 'want') {
+                fillColor = '#3498db'; 
+                fillOpacity = 0.7;
+            }
+
+            return {
+                fillColor: fillColor,
+                weight: 1,
+                opacity: 1,
+                color: 'white',
+                fillOpacity: fillOpacity
+            };
+        }
+
+        function registerUser() {
+            const username = document.getElementById('auth-user').value;
+            const password = document.getElementById('auth-pass').value;
+            if(!username || !password) return alert("Please fill username and password");
+
+            fetch('/api/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username, password})
+            })
+            .then(res => res.json().then(data => ({status: res.status, body: data})))
+            .then(res => {
+                if(res.status === 200) {
+                    alert("Registered successfully! Now log in.");
+                } else {
+                    alert(res.body.detail || "Registration failed");
+                }
+            });
+        }
+
+        function loginUser() {
+            const username = document.getElementById('auth-user').value;
+            const password = document.getElementById('auth-pass').value;
+            if(!username || !password) return alert("Please fill username and password");
+
+            const formData = new URLSearchParams();
+            formData.append('username', username);
+            formData.append('password', password);
+
+            fetch('/token', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: formData
+            })
+            .then(res => res.json().then(data => ({status: res.status, body: data})))
+            .then(res => {
+                if(res.status === 200) {
+                    authToken = res.body.access_token;
+                    localStorage.setItem('auth_token', authToken);
+                    loadUserData();
+                } else {
+                    alert(res.body.detail || "Login failed");
+                }
+            });
+        }
+
+        function logoutUser() {
+            authToken = null;
+            localStorage.removeItem('auth_token');
+            userStatuses = {};
+            document.getElementById('auth-logged-out').style.display = 'block';
+            document.getElementById('auth-logged-in').style.display = 'none';
+            if(geojsonLayer) geojsonLayer.setStyle(getCountryStyle);
+        }
+
+        function loadUserData() {
+            if(!authToken) return;
+            fetch('/api/user-data', {
+                headers: {'Authorization': `Bearer ${authToken}`}
+            })
+            .then(res => {
+                if(res.status === 200) return res.json();
+                else { logoutUser(); throw new Error("Unauthorized"); }
+            })
+            .then(data => {
+                userStatuses = data.statuses;
+                document.getElementById('current-username').innerText = data.username;
+                document.getElementById('dietary-input').value = data.dietary_requirements;
+                document.getElementById('auth-logged-out').style.display = 'none';
+                document.getElementById('auth-logged-in').style.display = 'block';
+                if(geojsonLayer) geojsonLayer.setStyle(getCountryStyle);
+            }).catch(err => console.log(err));
+        }
+
+        function saveDietary() {
+            if(!authToken) return;
+            const requirements = document.getElementById('dietary-input').value;
+            fetch('/api/user-dietary', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({dietary_requirements: requirements})
+            })
+            .then(res => {
+                if(res.status === 200) alert("Dietary requirements saved!");
+            });
+        }
+
+        function setStatus(statusType) {
+            if(!authToken || !currentActiveIso) return;
+            
+            let currentEntry = userStatuses[currentActiveIso] || {};
+            let newStatus = currentEntry.status === statusType ? 'none' : statusType;
+            let tasteRating = currentEntry.taste_rating || null;
+            let chefRating = currentEntry.chef_rating || null;
+
+            if(newStatus === 'none') {
+                tasteRating = null;
+                chefRating = null;
+            }
+
+            sendUpdateStatus(currentActiveIso, newStatus, tasteRating, chefRating);
+        }
+
+        function setTasteRating(rating) {
+            if(!authToken || !currentActiveIso) return;
+            let currentEntry = userStatuses[currentActiveIso] || {};
+            let status = currentEntry.status || 'tasted';
+            sendUpdateStatus(currentActiveIso, status, rating, currentEntry.chef_rating || null);
+        }
+
+        function setChefRating(rating) {
+            if(!authToken || !currentActiveIso) return;
+            let currentEntry = userStatuses[currentActiveIso] || {};
+            let status = currentEntry.status || 'cooked';
+            sendUpdateStatus(currentActiveIso, status, currentEntry.taste_rating || null, rating);
+        }
+
+        function sendUpdateStatus(iso, status, taste_rating, chef_rating) {
+            fetch('/api/user-status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({iso, status, taste_rating, chef_rating})
+            })
+            .then(res => {
+                if(res.status === 200) {
+                    if(status === 'none') {
+                        delete userStatuses[iso];
+                    } else {
+                        userStatuses[iso] = { status, taste_rating, chef_rating };
+                    }
+                    updateModalPassportControls(iso);
+                    if(geojsonLayer) geojsonLayer.setStyle(getCountryStyle);
+                }
+            });
+        }
+
+        function updateModalPassportControls(iso) {
+            const entry = userStatuses[iso] || { status: 'none', taste_rating: null, chef_rating: null };
+            
+            document.getElementById('btn-tasted').className = "pass-btn" + (entry.status === 'tasted' ? " active-tasted" : "");
+            document.getElementById('btn-cooked').className = "pass-btn" + (entry.status === 'cooked' ? " active-cooked" : "");
+            document.getElementById('btn-want').className = "pass-btn" + (entry.status === 'want' ? " active-want" : "");
+
+            const tasteBox = document.getElementById('taste-rating-box');
+            const chefBox = document.getElementById('chef-rating-box');
+
+            if (entry.status === 'tasted') {
+                tasteBox.classList.add('active');
+            } else {
+                tasteBox.classList.remove('active');
+            }
+
+            if (entry.status === 'cooked') {
+                chefBox.classList.add('active');
+            } else {
+                chefBox.classList.remove('active');
+            }
+
+            // Render stars
+            const stars = document.querySelectorAll('#star-container .star');
+            stars.forEach((s, index) => {
+                if (entry.taste_rating && index < entry.taste_rating) {
+                    s.classList.add('selected');
+                } else {
+                    s.classList.remove('selected');
+                }
+            });
+
+            // Render hats
+            const hats = document.querySelectorAll('#hat-container .hat');
+            hats.forEach((h, index) => {
+                if (entry.chef_rating && index < entry.chef_rating) {
+                    h.classList.add('selected');
+                } else {
+                    h.classList.remove('selected');
+                }
+            });
+        }
+
+        function populateCategorizedChips(db) {
+            const allIngredientsSet = new Set();
+            const dishesArray = Array.isArray(db) ? db : Object.values(db);
+            
+            dishesArray.forEach(dish => {
+                const ings = getIngredients(dish);
+                ings.forEach(ing => {
+                    if (ing) allIngredientsSet.add(ing.toLowerCase().trim());
+                });
+            });
+
+            document.getElementById('chips-meat').innerHTML = '';
+            document.getElementById('chips-fish').innerHTML = '';
+            document.getElementById('chips-veg').innerHTML = '';
+            document.getElementById('chips-pantry').innerHTML = '';
+            document.getElementById('chips-spices').innerHTML = '';
+
+            allIngredientsSet.forEach(ing => {
+                const chip = document.createElement('div');
+                chip.className = 'ingredient-chip';
+                chip.innerText = ing;
+                chip.onclick = function() { toggleChip(chip, ing); };
+
+                let placed = false;
+                for (let cat in categories) {
+                    if (categories[cat].some(keyword => ing.includes(keyword))) {
+                        document.getElementById(`chips-${cat}`).appendChild(chip);
+                        placed = true;
+                        break;
+                    }
+                }
+                if (!placed) document.getElementById('chips-pantry').appendChild(chip);
+            });
+        }
+
+        function toggleChip(element, ingredientName) {
+            element.classList.toggle('selected');
+            updateInputFromChips();
+            findMatches();
+        }
+
+        function updateInputFromChips() {
+            const selectedChips = document.querySelectorAll('.ingredient-chip.selected');
+            const ingredients = Array.from(selectedChips).map(chip => chip.innerText);
+            document.getElementById('ingredients-input').value = ingredients.join(', ');
+        }
+
+        function findMatches() {
+            if (!geojsonLayer) return;
+
+            const input = document.getElementById('ingredients-input').value.toLowerCase();
+            const userIngredients = input.split(',').map(i => i.trim()).filter(i => i !== "");
+
+            geojsonLayer.eachLayer(layer => {
+                const isoCode = getIso(layer.feature);
+                let dish = isoCode ? dishDatabase[isoCode] : null;
+                const rawIngs = getIngredients(dish);
+
+                if (userIngredients.length === 0 || !dish || rawIngs.length === 0) {
+                    layer.isMatch = false;
+                    geojsonLayer.resetStyle(layer);
+                    return;
+                }
+
+                const dishIngs = rawIngs.map(ing => ing.toLowerCase().trim());
+                const canCook = dishIngs.every(dishIng => 
+                    userIngredients.some(userIng => userIng === dishIng || dishIng.includes(userIng) || userIng.includes(dishIng))
+                );
+                
+                if (canCook) {
+                    layer.isMatch = true;
+                    layer.setStyle({ fillColor: '#27ae60', fillOpacity: 0.8, weight: 1, color: 'white' });
+                } else {
+                    layer.isMatch = false;
+                    geojsonLayer.resetStyle(layer);
+                }
+            });
+        }
+
+        function clearSearch() {
+            document.getElementById('ingredients-input').value = "";
+            document.querySelectorAll('.ingredient-chip.selected').forEach(chip => chip.classList.remove('selected'));
+            if (geojsonLayer) geojsonLayer.setStyle(getCountryStyle);
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') findMatches();
+        }
+
+        function openModal(country, dish, isoCode) {
+            currentActiveIso = isoCode;
+            document.getElementById('modal-title').innerText = dish.name || dish.Name || 'Dish';
+            document.getElementById('modal-country').innerText = country;
+            document.getElementById('modal-method').innerText = dish.method || dish.Method || 'Method not provided.';
+            
+            const wikiUrl = dish.wiki || dish.Wiki || '#';
+            const dishName = dish.name || dish.Name || 'Wikipedia';
+            
+            document.getElementById('modal-wiki-btn').onclick = function() {
+                closeModal();
+                openWikiDrawer(wikiUrl, dishName);
+            };
+            
+            const rawIngs = getIngredients(dish);
+            const tagsHtml = rawIngs.map(ing => `<span class="tag">${ing}</span>`).join('');
+            document.getElementById('modal-ingredients').innerHTML = tagsHtml;
+            
+            const passportControls = document.getElementById('passport-controls');
+            if(authToken) {
+                passportControls.style.display = 'block';
+                updateModalPassportControls(isoCode);
+            } else {
+                passportControls.style.display = 'none';
+            }
+            
+            document.getElementById('recipe-modal').style.display = 'block';
+            document.getElementById('modal-overlay').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('recipe-modal').style.display = 'none';
+            document.getElementById('modal-overlay').style.display = 'none';
+            currentActiveIso = null;
+        }
+
+        function openWikiDrawer(url, title) {
+            document.getElementById('drawer-title').innerText = title;
+            document.getElementById('wiki-frame').src = url;
+            document.getElementById('wiki-drawer').classList.add('open');
+        }
+
+        function closeWikiDrawer() {
+            document.getElementById('wiki-drawer').classList.remove('open');
+            document.getElementById('wiki-frame').src = '';
+        }
+    </script>
+</body>
+</html>
