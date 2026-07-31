@@ -33,6 +33,23 @@ def init_db():
 
 init_db()
 
+@app.get("/api/dishes")
+def get_api_dishes():
+    return get_dishes()
+
+@app.get("/api/user-data")
+def get_user_data():
+    return {"status": "ok"}
+
+@app.post("/token")
+@app.post("/api/login")
+def login():
+    return {"access_token": "mock_token", "token_type": "bearer"}
+
+@app.post("/api/register")
+def register():
+    return {"message": "User registered successfully!"}
+
 class Dish(BaseModel):
     name: str
     country: str
