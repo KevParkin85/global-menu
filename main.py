@@ -43,8 +43,9 @@ def get_user_data():
 
 @app.post("/token")
 @app.post("/api/login")
-def login():
-    return {"access_token": "mock_token", "token_type": "bearer"}
+def login(request: Request, username: str = Form(None)):
+    # Fallback if form data is sent as JSON or username is in the request body
+    return {"access_token": "mock_token", "token_type": "bearer", "username": username or "kev"}
 
 @app.post("/api/register")
 def register():
