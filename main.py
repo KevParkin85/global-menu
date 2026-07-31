@@ -33,27 +33,25 @@ def init_db():
 
 init_db()
 
-@app.get("/api/dishes")
-def get_api_dishes():
-    return get_dishes()
+class Dish(BaseModel):
+    name: str
+    country: str
+    rating: int = None
+    difficulty: int = None
+    notes: str = None
 
-@app.get("/api/user-data")
-def get_user_data():
-    return {
-        "username": "kev",
-        "user": "kev",
-        "dietary_requirements": ""
-    }
+@app.get("/", response_class=HTMLResponse)
+def read_root():
+    with open("index.html", "r", encoding="utf-8") as f:
+        return f.read()
 
 @app.post("/token")
 @app.post("/api/login")
 async def login(request: Request):
-    # Check if form data or JSON payload was sent
     form_data = await request.form()
-    username = form_data.get("username") or form_data.get("username")
+    username = form_data.get("username")
     
     if not username:
-        # Fallback to checking json body if form data is empty
         try:
             body = await request.json()
             username = body.get("username")
@@ -67,23 +65,16 @@ async def login(request: Request):
         "user": username
     }
 
-@app.post("/api/register")
-def register():
-    return {"message": "User registered successfully!"}
-
-class Dish(BaseModel):
-    name: str
-    country: str
-    rating: int = None
-    difficulty: int = None
-    notes: str = None
-
-@app.get("/", response_class=HTMLResponse)
-def read_root():
-    with open("index.html", "r", encoding="utf-8") as f:
-        return f.read()
+@app.get("/api/user-data")
+def get_user_data():
+    return {
+        "username": "bob",
+        "user": "bob",
+        "dietary_requirements": ""
+    }
 
 @app.get("/dishes")
+@app.get("/api/dishes")
 def get_dishes():
     conn = sqlite3.connect('dishes.db')
     conn.row_factory = sqlite3.Row
@@ -92,6 +83,17 @@ def get_dishes():
     rows = cursor.fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+@app.get("/api/ingredients")
+def get_ingredients():
+    # Return mock or standard ingredient lists by category if your frontend fetches them
+    return {
+        "meat_poultry": ["Chicken", "Beef", "Pork", "Lamb"],
+        "fish_seafood": ["Salmon", "Cod", "Shrimp", "Tuna"],
+        "vegetables_legumes": ["Tomato", "Onion", "Garlic", "Spinach"],
+        "pantry_grains_dairy": ["Rice", "Flour", "Milk", "Cheese"],
+        "sauces_herbs_spices": ["Soy Sauce", "Olive Oil", "Basil", "Cumin"]
+    }
 
 @app.post("/dishes")
 def add_dish(dish: Dish):
