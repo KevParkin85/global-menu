@@ -6,6 +6,9 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
+# Simple store for active session user
+current_session = {"username": "User", "dietary_requirements": ""}
+
 # Enable CORS so your frontend can talk to the backend smoothly
 app.add_middleware(
     CORSMiddleware,
@@ -58,19 +61,22 @@ async def login(request: Request):
         except:
             username = "User"
 
+    if username:
+        current_session["username"] = username
+
     return {
         "access_token": "mock_token", 
         "token_type": "bearer", 
-        "username": username,
-        "user": username
+        "username": current_session["username"],
+        "user": current_session["username"]
     }
 
 @app.get("/api/user-data")
 def get_user_data():
     return {
-        "username": "bob",
-        "user": "bob",
-        "dietary_requirements": ""
+        "username": current_session["username"],
+        "user": current_session["username"],
+        "dietary_requirements": current_session["dietary_requirements"]
     }
 
 @app.get("/dishes")
@@ -86,7 +92,6 @@ def get_dishes():
 
 @app.get("/api/ingredients")
 def get_ingredients():
-    # Return mock or standard ingredient lists by category if your frontend fetches them
     return {
         "meat_poultry": ["Chicken", "Beef", "Pork", "Lamb"],
         "fish_seafood": ["Salmon", "Cod", "Shrimp", "Tuna"],
